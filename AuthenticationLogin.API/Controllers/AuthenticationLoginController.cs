@@ -6,6 +6,10 @@ using AuthenticationLogin.Core.Domain.Applications.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authorization;
 using AuthenticationLogin.Core.Domain.Dtos.Response;
+using AuthenticationLogin.Infraestructure.Utils;
+using AuthenticationLogin.Core.Domain.Dtos.Utils;
+//using AutoMapper;
+using AuthenticationLogin.Core.Domain.Dtos.JWT;
 
 namespace AuthenticationLogin.API.Controllers
 {
@@ -16,16 +20,21 @@ namespace AuthenticationLogin.API.Controllers
         private readonly IProfileRegistrationService _profileRegistrationService;
         private readonly IUserDataRetrieverService _userDataRetrieverService;
         private readonly IUserLogginService _userLogginService;
+        private readonly IJWTService _jwtService;
+       // private readonly IMapper _mapper;
 
-        public AuthenticationLoginController(IProfileRegistrationService profileRegistrationService, IUserDataRetrieverService UserDataRetrieverService, IUserLogginService UserLogginService)
+        public AuthenticationLoginController(IProfileRegistrationService profileRegistrationService, IUserDataRetrieverService UserDataRetrieverService, IUserLogginService UserLogginService, IJWTService jWTService)
         {
             _profileRegistrationService = profileRegistrationService;
             _userDataRetrieverService = UserDataRetrieverService;   
             _userLogginService = UserLogginService;
+            _jwtService = jWTService;
+          //  _mapper = mapper;
+
         }
 
         [HttpPost("api/createAccount/")]
-        public IActionResult CreateAccount(RegisterUserProfileRequest UserProfileData) {
+        public IActionResult CreateAccount([FromBody]RegisterUserProfileRequest UserProfileData) {
 
             bool accountCreationIsSuccesful = _profileRegistrationService.RegisterUserProfile(UserProfileData);
             if (accountCreationIsSuccesful == true)
@@ -40,15 +49,16 @@ namespace AuthenticationLogin.API.Controllers
         [HttpPost("api/Login/")]
         public IActionResult Login(UserLogginRequest userLoginData)
         {
-
+            var username = userLoginData.Username;
             bool accountLogginIsSuccesful = _userLogginService.UserLogging(userLoginData);
             if (accountLogginIsSuccesful == true)
             {
-                return Ok("UserLogin succesful");
+                string token = _jwtService.GenerateToken(username);
+               return Ok(new { message = "UserLogin successful", token });
             }
             else { return BadRequest(); }
         }
-        //[Authorize]
+        [Authorize]
         [HttpGet("api/RetrieveData/")]
         public IActionResult retrieveData()
         {
